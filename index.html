@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Platform Overrun — 1D Motion Assessment</title>
+<style>
+:root{
+  --ink:#0d1117; --ink2:#131a24; --ink3:#1a2430;
+  --amb:#e8a33d; --amb-dim:#a8762c;
+  --chalk:#e9e7e2; --chalk-dim:#9aa3ad;
+  --ok:#5fb87a; --no:#d1604f; --sig:#6fb7e8;
+  --rule:#26313d;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ink);color:var(--chalk);
+  font:16px/1.6 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px 90px}
+h1,h2,h3{font-family:"Helvetica Neue",Arial,sans-serif;font-weight:700;letter-spacing:-.01em;margin:0}
+p{margin:0 0 14px}
+button{font-family:"Helvetica Neue",Arial,sans-serif;cursor:pointer}
+:focus-visible{outline:2px solid var(--amb);outline-offset:3px}
+.hidden{display:none !important}
+.caseno{font:600 12px/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:.22em;color:var(--amb-dim)}
+.btn{background:var(--amb);color:#17120a;border:0;border-radius:2px;
+  padding:13px 26px;font-size:15px;font-weight:700;letter-spacing:.03em}
+.btn:hover{background:#f4b356}
+.btn.ghost{background:transparent;color:var(--chalk-dim);border:1px solid var(--rule)}
+.btn.ghost:hover{color:var(--chalk);border-color:var(--chalk-dim)}
+.btn.warn{background:var(--no);color:#1a0b08}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+
+#title{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:40px 20px;position:relative;overflow:hidden}
+#titleScene{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#titleScene svg{position:absolute;inset:0;width:100%;height:100%}
+#title .inner{position:relative;z-index:1;max-width:780px}
+#title h1{font-size:clamp(40px,8.4vw,86px);line-height:.94;color:var(--chalk)}
+#title .sub{margin-top:18px;font:400 15px/1.7 "Helvetica Neue",Arial,sans-serif;color:var(--chalk-dim)}
+#title .rule{width:54px;height:2px;background:var(--amb);margin:26px auto}
+.entry{margin-top:30px}
+.entry label{display:block;font:600 12px/1 "Helvetica Neue",Arial,sans-serif;
+  letter-spacing:.16em;color:var(--chalk-dim);margin-bottom:10px}
+.entry input{width:100%;max-width:360px;background:var(--ink2);border:1px solid var(--rule);
+  color:var(--chalk);border-radius:2px;padding:13px 15px;font-size:17px;
+  font-family:"Helvetica Neue",Arial,sans-serif;text-align:center;letter-spacing:.04em}
+.entry input:focus{border-color:var(--amb);outline:none}
+.entry .btn{margin-top:16px}
+.entry .enote{margin-top:14px;font:400 12.5px/1.6 "Helvetica Neue",Arial,sans-serif;color:#6d7681}
+.rules{margin:26px auto 0;max-width:520px;text-align:left;background:rgba(19,26,36,.86);
+  border:1px solid var(--rule);border-left:2px solid var(--no);padding:14px 18px;
+  font:13.5px/1.6 "Helvetica Neue",Arial,sans-serif;color:var(--chalk-dim)}
+.rules b{color:var(--chalk)}
+.rules ol{margin:6px 0 0;padding-left:20px}
+
+.ts-drift{transform-origin:50% 50%;animation:tsDrift 36s ease-in-out infinite alternate}
+@keyframes tsDrift{from{transform:scale(1.01)}to{transform:scale(1.05) translateY(-.6%)}}
+.ts-lamp{animation:tsFlick 7.5s ease-in-out infinite}
+@keyframes tsFlick{0%,100%{opacity:1}44%{opacity:.82}49%{opacity:1}}
+.ts-head{animation:tsHead 4s ease-in-out infinite alternate}
+@keyframes tsHead{from{opacity:.75}to{opacity:1}}
+
+#cine{position:fixed;inset:0;background:#05070b;z-index:60;display:flex;align-items:center;justify-content:center}
+#cine svg{width:100%;height:100%;max-width:980px}
+#cineSkip{position:absolute;right:20px;bottom:20px;z-index:2}
+#cineCut{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:1}
+#cineEnd{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;z-index:2;
+  font-family:"Helvetica Neue",Arial,sans-serif;opacity:0;padding:0 20px}
+#cineEnd .ce1{display:block;font:600 clamp(10px,1.5vw,12px)/1.3 "Helvetica Neue",Arial,sans-serif;letter-spacing:.32em;color:#6d7681;margin-bottom:18px}
+#cineEnd .ce2{display:block;font:700 clamp(15px,2.6vw,22px)/1.3 "Helvetica Neue",Arial,sans-serif;letter-spacing:.24em;color:var(--chalk);opacity:0;transition:opacity .35s}
+#cineCap{position:absolute;left:0;right:0;top:44px;z-index:2;text-align:center;
+  font:600 12px/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:.22em;color:var(--amb);opacity:0}
+
+.masthead{border-bottom:1px solid var(--rule);padding:26px 0 18px;margin-bottom:30px;
+  display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
+.masthead h2{font-size:23px}
+.masthead .team{font:600 12px/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:.16em;color:var(--amb)}
+.resumed{background:rgba(209,96,79,.08);border:1px solid rgba(209,96,79,.35);border-radius:2px;
+  padding:12px 16px;margin:-12px 0 24px;font:13.5px/1.6 "Helvetica Neue",Arial,sans-serif;color:var(--chalk-dim)}
+.brief{background:var(--ink2);border-left:2px solid var(--amb);padding:20px 22px;margin-bottom:34px}
+.brief p:last-child{margin-bottom:0}
+h3.sec{font-size:13px;letter-spacing:.18em;color:var(--chalk-dim);margin:38px 0 16px;font-weight:600}
+
+.eviGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.evi{background:var(--ink2);border:1px solid var(--rule);border-radius:3px;padding:16px 18px}
+.evi h4{margin:0 0 12px;font:700 13px/1.3 "Helvetica Neue",Arial,sans-serif;letter-spacing:.05em;color:var(--amb)}
+.evi .row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px dotted #202b36}
+.evi .row:last-child{border-bottom:0}
+.evi dt{color:var(--chalk-dim)}
+.evi dd{margin:0;font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.evi dl{margin:0;font-family:"Helvetica Neue",Arial,sans-serif;font-size:14px}
+.evi .full{display:block;padding:7px 0 0;color:var(--chalk-dim);font-size:13px;line-height:1.55}
+
+.figbox{background:#05070b;border:1px solid var(--rule);border-radius:3px;overflow:hidden;margin:20px 0 0}
+.figbox svg{display:block;width:100%;height:auto}
+.pcap{padding:12px 18px;border-top:1px solid var(--rule);
+  font:13px/1.6 "Helvetica Neue",Arial,sans-serif;color:#6d7681}
+
+.stage{border:1px solid var(--rule);border-radius:3px;margin-bottom:12px;background:var(--ink2);overflow:hidden}
+.stage.locked{opacity:.42;pointer-events:none}
+.stage.done{opacity:1;border-color:#3a4654}
+.stHead{display:flex;align-items:center;gap:14px;padding:16px 18px}
+.stNum{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--rule);
+  display:grid;place-items:center;font:700 12px/1 "Helvetica Neue",Arial,sans-serif;color:var(--chalk-dim)}
+.stage.done .stNum{background:var(--chalk-dim);border-color:var(--chalk-dim);color:#0d1117}
+.stage.open .stNum{border-color:var(--amb);color:var(--amb)}
+.stTitle{font:700 15px/1.35 "Helvetica Neue",Arial,sans-serif}
+.stBody{padding:0 18px 18px}
+.stBody .ask{font-size:15px;margin-bottom:14px}
+.eq sub{font-size:.78em}
+.eq{display:inline-block;background:var(--ink3);border:1px solid var(--rule);border-radius:2px;
+  padding:7px 12px;margin-bottom:14px;font:15px/1.5 "SFMono-Regular",Consolas,monospace;color:var(--amb)}
+.work label{display:block;font:600 12.5px/1.4 "Helvetica Neue",Arial,sans-serif;color:var(--chalk-dim);margin:2px 0 6px}
+.work textarea{width:100%;min-height:64px;background:var(--ink3);border:1px solid var(--rule);color:var(--chalk);
+  border-radius:2px;padding:10px 12px;font:14.5px/1.6 "SFMono-Regular",Consolas,monospace;resize:vertical;margin-bottom:12px}
+.work textarea:focus{border-color:var(--amb);outline:none}
+.photoRow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-4px 0 14px}
+.photoRow input[type=file]{display:none}
+.photoBtn{background:transparent;color:var(--chalk);border:1px dashed var(--chalk-dim);border-radius:2px;
+  padding:9px 14px;font:600 13.5px/1 "Helvetica Neue",Arial,sans-serif}
+.photoBtn:hover{border-color:var(--amb);color:var(--amb)}
+.photoBtn:disabled{opacity:.35;cursor:not-allowed}
+.photoMsg{font:13px/1.5 "Helvetica Neue",Arial,sans-serif;color:var(--chalk-dim)}
+.photoMsg.bad{color:var(--no)}
+.thumb{display:block;max-width:100%;max-height:260px;border:1px solid var(--rule);border-radius:2px;margin:0 0 14px;background:#fff}
+.ansRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.ansRow input{width:190px;background:var(--ink3);border:1px solid var(--rule);color:var(--chalk);
+  border-radius:2px;padding:11px 13px;font:16px/1 "Helvetica Neue",Arial,sans-serif;font-variant-numeric:tabular-nums}
+.ansRow input:focus{border-color:var(--amb);outline:none}
+textarea:disabled,input:disabled{opacity:.85;cursor:not-allowed}
+.unit{color:var(--chalk-dim);font:14px/1 "Helvetica Neue",Arial,sans-serif}
+.fb{margin-top:12px;font:14px/1.55 "Helvetica Neue",Arial,sans-serif;display:none}
+.fb.show{display:block}
+.fb.info{color:var(--chalk-dim)}
+.fb.bad{color:var(--no)}
+.note{margin-top:12px;padding:12px 14px;background:var(--ink3);border-left:2px solid var(--amb-dim);
+  font:13.5px/1.6 "Helvetica Neue",Arial,sans-serif;color:var(--chalk-dim)}
+
+.sealed{border:1px dashed var(--amb-dim);background:rgba(232,163,61,.05);border-radius:3px;padding:18px;margin:4px 0 16px}
+.sealed h4{margin:0 0 8px;font:700 13px/1.3 "Helvetica Neue",Arial,sans-serif;letter-spacing:.05em;color:var(--amb)}
+.sealed p{font:13.5px/1.6 "Helvetica Neue",Arial,sans-serif;color:var(--chalk-dim);margin:8px 0 0}
+.sealed .figbox{margin-top:14px}
+
+.choices{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+.choice{text-align:left;background:var(--ink3);border:1px solid var(--rule);color:var(--chalk);
+  border-radius:2px;padding:13px 15px;font:14.5px/1.5 "Helvetica Neue",Arial,sans-serif}
+.choice:hover{border-color:var(--chalk-dim)}
+.choice.sel{border-color:var(--amb);background:rgba(232,163,61,.08)}
+
+.vpair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+@media(max-width:560px){.vpair{grid-template-columns:1fr}}
+.vcard{background:var(--ink3);border:1px solid var(--rule);border-radius:3px;padding:20px;
+  text-align:left;color:var(--chalk);font-family:"Helvetica Neue",Arial,sans-serif}
+.vcard:hover{border-color:var(--chalk-dim)}
+.vcard.sel{border-color:var(--amb);background:rgba(232,163,61,.08)}
+.vcard b{display:block;font-size:15px;margin-bottom:6px}
+.vcard span{font-size:13.5px;line-height:1.55;color:var(--chalk-dim)}
+
+.rcap{padding:14px 18px;border-top:1px solid var(--rule);font:14px/1.6 "Helvetica Neue",Arial,sans-serif;color:var(--chalk-dim)}
+
+.cer label{display:block;font:700 13.5px/1.4 "Helvetica Neue",Arial,sans-serif;margin:18px 0 7px}
+.cer .hint{font:13px/1.55 "Helvetica Neue",Arial,sans-serif;color:#6d7681;margin-bottom:9px}
+.cer textarea,.xexam textarea{width:100%;background:var(--ink3);border:1px solid var(--rule);
+  color:var(--chalk);border-radius:2px;padding:13px;font:15px/1.65 inherit;resize:vertical}
+.cer textarea{min-height:110px}
+.xexam textarea{min-height:86px}
+.cer textarea:focus,.xexam textarea:focus{border-color:var(--amb);outline:none}
+.xexam{background:var(--ink2);border-left:2px solid var(--no);padding:18px 20px;margin:26px 0 6px}
+.xexam h4{margin:0 0 10px;font:700 13px/1.3 "Helvetica Neue",Arial,sans-serif;letter-spacing:.05em;color:var(--no)}
+.xexam p{font:14.5px/1.65 "Helvetica Neue",Arial,sans-serif;color:var(--chalk);margin:0 0 10px}
+.saved{font:12px/1 "Helvetica Neue",Arial,sans-serif;color:#6d7681;margin-top:10px}
+.footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--rule);
+  font:12.5px/1.7 "Helvetica Neue",Arial,sans-serif;color:#6d7681}
+
+#printReport{display:none}
+@media print{
+  @page{margin:16mm}
+  body{background:#fff !important;color:#111 !important;font:11.5pt/1.5 Georgia,serif}
+  #title,#cine,#case,.btn{display:none !important}
+  #printReport{display:block !important}
+  #printReport h1{font:700 20pt/1.2 "Helvetica Neue",Arial,sans-serif;margin:0 0 2mm}
+  #printReport .pcase{font:700 8.5pt/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:.2em;color:#7a5410}
+  #printReport .pmeta{font:9.5pt/1.5 "Helvetica Neue",Arial,sans-serif;color:#555;margin:0 0 5mm;
+    padding-bottom:3mm;border-bottom:1px solid #bbb}
+  #printReport h2{font:700 11pt/1.3 "Helvetica Neue",Arial,sans-serif;margin:6mm 0 2mm;
+    color:#7a5410;letter-spacing:.06em;page-break-after:avoid}
+  #printReport table{width:100%;border-collapse:collapse;margin-bottom:3mm;
+    font:9.5pt/1.4 "Helvetica Neue",Arial,sans-serif}
+  #printReport tr{page-break-inside:avoid}
+  #printReport th{text-align:left;background:#f2f4f6;color:#555;font-weight:700;padding:1.6mm 2mm;border:1px solid #ccc}
+  #printReport td{padding:1.6mm 2mm;border:1px solid #ccc;vertical-align:top}
+  #printReport td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  #printReport td.wk{font:9pt/1.45 Consolas,monospace;white-space:pre-wrap}
+  #printReport .ans{font-weight:700}
+  #printReport .vd{display:inline-block;border:1.5px solid #111;padding:1.5mm 4mm;
+    font:700 11pt/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:.08em}
+  #printReport .qa{margin-bottom:4mm;page-break-inside:avoid}
+  #printReport .q{font:italic 9.5pt/1.45 Georgia,serif;color:#555;margin:0 0 1.5mm}
+  #printReport .a{white-space:pre-wrap;border:1px solid #ccc;padding:2.5mm;min-height:14mm}
+  #printReport .hw{page-break-inside:avoid;margin:0 0 4mm}
+  #printReport .hw img{display:block;max-width:100%;max-height:105mm;border:1px solid #ccc;margin-top:1.5mm}
+  #printReport .line{font:9pt/1.4 Consolas,monospace;border:1px dashed #999;padding:2mm;word-break:break-all}
+  #printReport .foot{margin-top:6mm;padding-top:2mm;border-top:1px solid #bbb;
+    font:8.5pt/1.4 "Helvetica Neue",Arial,sans-serif;color:#666}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.001s !important;animation-iteration-count:1 !important}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ TITLE ============ -->
+<section id="title">
+  <div id="titleScene" aria-hidden="true">
+    <svg viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="tBg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0a121c"/><stop offset="55%" stop-color="#0c141f"/>
+          <stop offset="100%" stop-color="#05080e"/>
+        </linearGradient>
+        <radialGradient id="tLamp" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffd79a" stop-opacity=".42"/>
+          <stop offset="34%" stop-color="#e8a33d" stop-opacity=".12"/>
+          <stop offset="100%" stop-color="#e8a33d" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="tHead" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#fff2d6" stop-opacity=".9"/>
+          <stop offset="30%" stop-color="#ffe2a8" stop-opacity=".25"/>
+          <stop offset="100%" stop-color="#ffe2a8" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="tBody" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3a4b5c"/><stop offset="55%" stop-color="#26343f"/>
+          <stop offset="100%" stop-color="#151f29"/>
+        </linearGradient>
+        <linearGradient id="tScrim" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0d1117" stop-opacity=".94"/>
+          <stop offset="34%" stop-color="#0d1117" stop-opacity=".66"/>
+          <stop offset="62%" stop-color="#0d1117" stop-opacity=".18"/>
+          <stop offset="100%" stop-color="#0d1117" stop-opacity=".5"/>
+        </linearGradient>
+        <radialGradient id="tVig" cx="50%" cy="46%" r="74%">
+          <stop offset="36%" stop-color="#000" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#000" stop-opacity=".74"/>
+        </radialGradient>
+      </defs>
+      <rect x="-60" y="-40" width="1320" height="780" fill="url(#tBg)"/>
+      <g class="ts-drift">
+        <!-- canopy -->
+        <rect x="380" y="150" width="900" height="20" fill="#101a26"/>
+        <g stroke="#0c1520" stroke-width="3">
+          <line x1="460" y1="170" x2="460" y2="470"/><line x1="700" y1="170" x2="700" y2="470"/>
+          <line x1="940" y1="170" x2="940" y2="470"/><line x1="1180" y1="170" x2="1180" y2="470"/>
+        </g>
+        <circle cx="580" cy="186" r="96" fill="url(#tLamp)" class="ts-lamp"/>
+        <circle cx="820" cy="186" r="96" fill="url(#tLamp)" class="ts-lamp"/>
+        <circle cx="1060" cy="186" r="96" fill="url(#tLamp)" class="ts-lamp"/>
+        <!-- platform -->
+        <rect x="380" y="470" width="900" height="42" fill="#18222e"/>
+        <rect x="380" y="470" width="900" height="5" fill="#a8762c" opacity=".75"/>
+        <!-- stop marker board -->
+        <line x1="1010" y1="470" x2="1010" y2="392" stroke="#41566b" stroke-width="4"/>
+        <rect x="986" y="362" width="48" height="34" rx="2" fill="#e9e7e2" opacity=".86"/>
+        <text x="1010" y="385" fill="#0d1117" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="15" font-weight="700">STOP</text>
+        <!-- track -->
+        <rect x="-60" y="548" width="1320" height="6" fill="#2c3a48"/>
+        <rect x="-60" y="566" width="1320" height="6" fill="#2c3a48"/>
+        <g fill="#141d27">
+          <rect x="-40" y="574" width="34" height="8"/><rect x="40" y="574" width="34" height="8"/>
+          <rect x="120" y="574" width="34" height="8"/><rect x="200" y="574" width="34" height="8"/>
+          <rect x="280" y="574" width="34" height="8"/><rect x="360" y="574" width="34" height="8"/>
+          <rect x="440" y="574" width="34" height="8"/><rect x="520" y="574" width="34" height="8"/>
+          <rect x="600" y="574" width="34" height="8"/><rect x="680" y="574" width="34" height="8"/>
+          <rect x="760" y="574" width="34" height="8"/><rect x="840" y="574" width="34" height="8"/>
+          <rect x="920" y="574" width="34" height="8"/><rect x="1000" y="574" width="34" height="8"/>
+          <rect x="1080" y="574" width="34" height="8"/><rect x="1160" y="574" width="34" height="8"/>
+        </g>
+        <!-- train arriving -->
+        <g>
+          <rect x="-120" y="400" width="420" height="140" rx="10" fill="url(#tBody)"/>
+          <path d="M300 400 L360 400 Q392 404 404 452 L410 540 L300 540 Z" fill="url(#tBody)"/>
+          <rect x="-120" y="500" width="530" height="8" fill="#a8762c" opacity=".6"/>
+          <g fill="#e8c27a" opacity=".55">
+            <rect x="-90" y="424" width="56" height="40" rx="3"/><rect x="-20" y="424" width="56" height="40" rx="3"/>
+            <rect x="50" y="424" width="56" height="40" rx="3"/><rect x="120" y="424" width="56" height="40" rx="3"/>
+            <rect x="190" y="424" width="56" height="40" rx="3"/>
+          </g>
+          <path d="M318 418 L356 418 Q380 422 388 456 L318 456 Z" fill="#0b1219" stroke="#41566b"/>
+          <circle cx="398" cy="516" r="70" fill="url(#tHead)" class="ts-head"/>
+          <circle cx="398" cy="516" r="6" fill="#fff4dc"/>
+          <g fill="#0b1118"><circle cx="20" cy="545" r="13"/><circle cx="70" cy="545" r="13"/>
+            <circle cx="250" cy="545" r="13"/><circle cx="300" cy="545" r="13"/></g>
+        </g>
+      </g>
+      <rect width="1200" height="700" fill="url(#tScrim)"/>
+      <rect width="1200" height="700" fill="url(#tVig)"/>
+    </svg>
+  </div>
+
+  <div class="inner">
+    <div class="caseno">1D MOTION &nbsp;·&nbsp; INDIVIDUAL ASSESSMENT</div>
+    <div class="rule"></div>
+    <h1>THE PLATFORM<br>OVERRUN</h1>
+    <div class="sub">Constant acceleration · Stopping distance · Velocity–time graphs</div>
+    <p class="sub" style="margin-top:22px">The driver says the train stopped before the marker.<br>A passenger says the front doors opened over the track.</p>
+    <div class="entry">
+      <label for="nameIn">YOUR FULL NAME</label>
+      <input id="nameIn" type="text" autocomplete="off" spellcheck="false" placeholder="as it appears on the class list">
+      <br><button class="btn" id="startBtn">Open the file</button>
+      <p class="enote">Your name decides your evidence. Every student investigates a different stop.<br>No logins. No student data collected.</p>
+    </div>
+    <div class="rules">
+      <b>This is a test. Read before you start.</b>
+      <ol>
+        <li>Work alone. Your numbers are not the same as anyone else&#8217;s.</li>
+        <li>Answers lock when you confirm them. There is no going back and no right/wrong feedback.</li>
+        <li>Show your working in the box at every stage &#8212; it earns marks.</li>
+        <li>At the end, save the report as a PDF and submit it. Do not close the page before you do.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CINEMATIC ============ -->
+<div id="cine" class="hidden" aria-hidden="true">
+  <svg viewBox="0 0 980 620" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="kBg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#0b131e"/><stop offset="55%" stop-color="#0a121c"/>
+        <stop offset="100%" stop-color="#05070b"/>
+      </linearGradient>
+      <radialGradient id="kLamp" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ffd79a" stop-opacity=".38"/>
+        <stop offset="100%" stop-color="#e8a33d" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="kHead" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#fff2d6" stop-opacity=".95"/>
+        <stop offset="30%" stop-color="#ffe2a8" stop-opacity=".25"/>
+        <stop offset="100%" stop-color="#ffe2a8" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="kBody" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3a4b5c"/><stop offset="55%" stop-color="#26343f"/>
+        <stop offset="100%" stop-color="#151f29"/>
+      </linearGradient>
+      <radialGradient id="kVig" cx="50%" cy="48%" r="74%">
+        <stop offset="40%" stop-color="#000" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#000" stop-opacity=".76"/>
+      </radialGradient>
+      <clipPath id="kFrame"><rect x="0" y="0" width="980" height="620"/></clipPath>
+    </defs>
+    <g clip-path="url(#kFrame)">
+      <rect x="-40" y="-40" width="1060" height="700" fill="url(#kBg)"/>
+      <g id="kShake"><g id="kCam">
+        <!-- station -->
+        <rect x="430" y="120" width="620" height="16" fill="#101a26"/>
+        <g stroke="#0c1520" stroke-width="3">
+          <line x1="500" y1="136" x2="500" y2="392"/><line x1="700" y1="136" x2="700" y2="392"/>
+          <line x1="900" y1="136" x2="900" y2="392"/>
+        </g>
+        <circle cx="600" cy="150" r="84" fill="url(#kLamp)" class="k-lamp"/>
+        <circle cx="800" cy="150" r="84" fill="url(#kLamp)" class="k-lamp"/>
+        <rect x="430" y="392" width="620" height="36" fill="#18222e"/>
+        <rect x="430" y="392" width="620" height="4" fill="#a8762c" opacity=".75"/>
+        <line x1="880" y1="392" x2="880" y2="326" stroke="#41566b" stroke-width="3.4"/>
+        <rect x="860" y="300" width="40" height="28" rx="2" fill="#e9e7e2" opacity=".86"/>
+        <text x="880" y="319" fill="#0d1117" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="12" font-weight="700">STOP</text>
+        <!-- track -->
+        <rect x="-40" y="462" width="1060" height="5" fill="#2c3a48"/>
+        <rect x="-40" y="478" width="1060" height="5" fill="#2c3a48"/>
+        <!-- braking beacon between the rails -->
+        <path d="M140 470 l12 -7 l12 7 l-12 7 z" fill="#e8a33d"/>
+        <!-- the train -->
+        <g id="kTrain">
+          <rect x="-560" y="330" width="460" height="124" rx="9" fill="url(#kBody)"/>
+          <rect x="-90" y="330" width="250" height="124" rx="9" fill="url(#kBody)"/>
+          <path d="M160 330 L200 330 Q226 334 236 376 L240 454 L160 454 Z" fill="url(#kBody)"/>
+          <rect x="-560" y="420" width="800" height="7" fill="#a8762c" opacity=".6"/>
+          <g fill="#e8c27a" opacity=".55">
+            <rect x="-530" y="352" width="48" height="34" rx="3"/><rect x="-460" y="352" width="48" height="34" rx="3"/>
+            <rect x="-390" y="352" width="48" height="34" rx="3"/><rect x="-320" y="352" width="48" height="34" rx="3"/>
+            <rect x="-250" y="352" width="48" height="34" rx="3"/><rect x="-170" y="352" width="48" height="34" rx="3"/>
+            <rect x="-60" y="352" width="48" height="34" rx="3"/><rect x="10" y="352" width="48" height="34" rx="3"/>
+            <rect x="80" y="352" width="48" height="34" rx="3"/>
+          </g>
+          <path d="M172 346 L200 346 Q218 350 224 380 L172 380 Z" fill="#0b1219" stroke="#41566b"/>
+          <circle cx="232" cy="436" r="64" fill="url(#kHead)"/>
+          <circle cx="232" cy="436" r="5" fill="#fff4dc"/>
+          <g fill="#0b1118"><circle cx="-500" cy="458" r="11"/><circle cx="-460" cy="458" r="11"/>
+            <circle cx="-180" cy="458" r="11"/><circle cx="-140" cy="458" r="11"/>
+            <circle cx="-40" cy="458" r="11"/><circle cx="0" cy="458" r="11"/>
+            <circle cx="130" cy="458" r="11"/><circle cx="170" cy="458" r="11"/></g>
+        </g>
+      </g>
+      </g>
+      <rect x="0" y="0" width="980" height="620" fill="url(#kVig)"/>
+      <g class="k-hud" opacity="0">
+        <rect x="52" y="512" width="380" height="84" rx="3" fill="#050a12" stroke="#26313d"/>
+        <text x="72" y="538" fill="#6d7681" font-family="Helvetica Neue,Arial" font-size="11" letter-spacing="2.4">TRACKSIDE CAMERA &#183; BRAKING BEACON</text>
+        <text id="kSpeed" x="72" y="576" fill="#e8a33d" font-family="Helvetica Neue,Arial" font-size="27" font-weight="700">-- km/h</text>
+        <text x="412" y="576" fill="#9aa3ad" text-anchor="end" font-family="Helvetica Neue,Arial" font-size="12" letter-spacing="2" class="k-ts">23:47:12</text>
+      </g>
+    </g>
+  </svg>
+  <div id="cineCut"></div>
+  <div id="cineCap">BRAKE APPLIED AT THE BEACON</div>
+  <div id="cineEnd"><span class="ce1">THE FOOTAGE ENDS HERE</span><span class="ce2">DETERMINE WHERE THE TRAIN STOPPED.</span></div>
+  <button class="btn ghost" id="cineSkip">Skip</button>
+</div>
+
+<div id="printReport" aria-hidden="true"></div>
+
+<!-- ============ CASE ============ -->
+<main id="case" class="wrap hidden">
+  <div class="masthead">
+    <div><div class="caseno">1D MOTION ASSESSMENT</div><h2>The Platform Overrun</h2></div>
+    <div class="team" id="nameTag"></div>
+  </div>
+  <div class="resumed hidden" id="resumed"></div>
+
+  <div class="brief" id="brief"></div>
+
+  <h3 class="sec">EVIDENCE ON FILE</h3>
+  <div class="eviGrid" id="eviGrid"></div>
+  <div class="figbox" id="planBox"></div>
+
+  <h3 class="sec">INVESTIGATION</h3>
+  <div id="stages"></div>
+
+  <div id="gateWrap" class="hidden">
+    <div class="stage open" id="gateStage">
+      <div class="stHead"><div class="stNum">?</div><div class="stTitle">What does the cross-check tell you?</div></div>
+      <div class="stBody">
+        <p class="ask" id="gateAsk"></p>
+        <div class="choices" id="gateChoices"></div>
+        <div class="fb" id="gateFb"></div>
+        <div style="margin-top:14px"><button class="btn" id="gateBtn" disabled>Lock answer</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="verdictWrap" class="hidden">
+    <h3 class="sec">VERDICT</h3>
+    <div class="stage open" id="verdictStage">
+      <div class="stHead"><div class="stNum">V</div><div class="stTitle">What does the evidence support?</div></div>
+      <div class="stBody">
+        <p class="ask" id="verdictAsk"></p>
+        <div class="vpair">
+          <button class="vcard" data-v="O">
+            <b>Overran the stop marker</b>
+            <span>At that speed and that braking rate, the train needed more distance than it had. The front stopped past the marker.</span>
+          </button>
+          <button class="vcard" data-v="S">
+            <b>Stopped short of the marker</b>
+            <span>The train had enough distance to stop. The front came to rest before the marker.</span>
+          </button>
+        </div>
+        <div class="fb" id="verdictFb"></div>
+        <div style="margin-top:16px"><button class="btn" id="verdictBtn" disabled>File the verdict</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="replayWrap" class="hidden">
+    <h3 class="sec">YOUR RECONSTRUCTION</h3>
+    <p style="font:14.5px/1.7 'Helvetica Neue',Arial,sans-serif;color:var(--chalk-dim)">Built only from the answers you locked. It shows what your numbers say &#8212; it does not check them.</p>
+    <div class="figbox" id="replayBox"></div>
+    <div style="margin-top:14px"><button class="btn ghost" id="replayAgain">Play again</button></div>
+  </div>
+
+  <div id="cerWrap" class="hidden">
+    <h3 class="sec">WRITTEN JUSTIFICATION</h3>
+    <div class="stage open"><div class="stBody" style="padding-top:18px">
+      <div class="cer">
+        <label for="cClaim">Claim</label>
+        <p class="hint">State whether the train stopped short of the marker or overran it. One sentence.</p>
+        <textarea id="cClaim"></textarea>
+        <label for="cEvid">Evidence</label>
+        <p class="hint">Quote your own numbers with units &#8212; the speed in m/s, the braking rate, your stopping distance, the distance to the marker, the gap, and your cross-check.</p>
+        <textarea id="cEvid"></textarea>
+        <label for="cReason">Reasoning</label>
+        <p class="hint">Explain why the equations of constant acceleration apply here, and why the area under the recorder&#8217;s velocity&#8211;time graph gives the same distance.</p>
+        <textarea id="cReason"></textarea>
+      </div>
+      <div class="xexam">
+        <h4>CROSS-EXAMINATION</h4>
+        <p id="xq1"></p>
+        <textarea id="cX1"></textarea>
+        <p id="xq2" style="margin-top:16px"></p>
+        <textarea id="cX2"></textarea>
+      </div>
+      <div class="saved" id="savedNote"></div>
+      <div style="margin-top:18px"><button class="btn" id="printBtn">Print / save as PDF</button></div>
+    </div></div>
+  </div>
+
+  <div class="footer">
+    The Platform Overrun &#183; 1D motion individual assessment &#183; constant acceleration, stopping distance and velocity&#8211;time graphs.<br>
+    Your evidence is generated from your name. Your answers are kept in this browser only, so you can reopen the page on the same device and carry on &#8212; but locked answers stay locked.
+  </div>
+</main>
+
+<script>
+/* ===================== PHYSICS CORE ===================== */
+(function (root) {
+  'use strict';
+
+  var TOL = 0.03;          // relative tolerance used by the marking panel
+  var XABS = 0.15;         // absolute margin (percentage points) for the cross-check stage
+
+  function normalizeName(n){ return String(n||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+  function xmur3(str){var h=1779033703^str.length;for(var i=0;i<str.length;i++){
+    h=Math.imul(h^str.charCodeAt(i),3432918353);h=(h<<13)|(h>>>19);}
+    return function(){h=Math.imul(h^(h>>>16),2246822507);h=Math.imul(h^(h>>>13),3266489909);
+      h^=h>>>16;return h>>>0;};}
+  function mulberry32(a){return function(){a|=0;a=(a+0x6D2B79F5)|0;
+    var t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;
+    return((t^(t>>>14))>>>0)/4294967296;};}
+  function makeRng(n){var s=xmur3('PF::MOTION1D::PLATFORMOVERRUN::'+normalizeName(n));s();
+    return mulberry32(s());}
+  function rr(r,a,b){return a+r()*(b-a);}
+  function rstep(r,a,b,s){var k=Math.floor((b-a)/s+1e-9)+1;return round(a+Math.floor(r()*k)*s,6);}
+  function round(v,d){var f=Math.pow(10,d);return Math.round(v*f)/f;}
+
+  function generate(name){
+    var rng = makeRng(name);
+
+    /* --- the evidence --- */
+    var v_kmh = rstep(rng, 40, 90, 1);          // trackside camera at the braking beacon
+    var a_mag = rstep(rng, 0.60, 1.20, 0.05);   // constant braking rate, m/s^2 (magnitude)
+    var overran = rng() < 0.5;
+
+    var v_i  = v_kmh / 3.6;                     // m/s
+    var t    = v_i / a_mag;                     // s, from v_f = v_i + a t with v_f = 0
+    var dx   = v_i * v_i / (2 * a_mag);         // m, from v_f^2 = v_i^2 + 2 a dx
+
+    /* Distance from the braking beacon to the stop marker. The stopping
+       distance always lands at least 8% away from the marker on the intended
+       side, so the verdict never hangs on rounding or on the small difference
+       between the calculation and the recorder. */
+    var f = rr(rng, 1.08, 1.30);
+    var d = overran ? Math.round(dx / f) : Math.round(dx * f);
+
+    /* --- the sealed event recorder: an independent v-t log ---
+       It logged wheel speed, so its two readings differ very slightly from
+       the camera and the brake figure. The area under its graph must sit
+       close to the calculated distance, but never exactly on it, so the
+       cross-check has something to measure. */
+    var v_rec, t_rec, area, diff, k = 0;
+    do {
+      v_rec = round(v_i * (1 + rr(rng, -0.006, 0.006)), 1);
+      t_rec = round(t   * (1 + rr(rng, -0.012, 0.012)), 1);
+      area  = 0.5 * v_rec * t_rec;
+      diff  = Math.abs(dx - area) / area * 100;
+      k++;
+    } while ((diff < 0.2 || diff > 2.2) && k < 200);
+
+    var gap = Math.abs(dx - d);
+
+    return {
+      name: normalizeName(name),
+      nameDisplay: String(name || '').trim(),
+      given: { v_kmh: v_kmh, a: a_mag, d: d },
+      sealed: { v_rec: v_rec, t_rec: t_rec },
+      answers: {
+        v_i: v_i,        // m/s
+        t: t,            // s
+        dx: dx,          // m
+        gap: gap,        // m
+        area: area,      // m
+        xcheck: diff     // %
+      },
+      verdict: dx > d ? 'OVERRAN THE MARKER' : 'STOPPED SHORT OF THE MARKER',
+      truth: {
+        overran: dx > d,
+        marginPct: Math.abs(dx - d) / d * 100,
+        /* the wrong answers worth recognising on sight */
+        trapVT: v_i * t,                          // distance = speed x time (twice the truth)
+        trapKmh: v_kmh * v_kmh / (2 * a_mag),     // km/h never converted
+        trapTkmh: v_kmh / a_mag,                  // stage 2 with km/h
+        trapX36: v_kmh * 3.6,                     // multiplied instead of divided
+        trapRect: v_rec * t_rec                   // area of the rectangle, half missing
+      }
+    };
+  }
+
+  /* --- marking with error carried forward ---
+     s = [v_i, t, dx, gap, area, xcheck] as the student entered them (NaN if blank)
+     gate = index chosen at the cross-check question (1 is correct)
+     verdict = 'O' (overran) or 'S' (stopped short) */
+  function close(v, target, rel, abs){
+    if (!isFinite(v) || !isFinite(target)) return false;
+    return Math.abs(v - target) <= Math.max(rel * Math.abs(target), abs || 0);
+  }
+  function mark(C, s, gate, verdict){
+    var A = C.answers, g = C.given, R = [], T = C.truth;
+    function push(stage, got, max, why){ R.push({stage:stage, got:got, max:max, why:why}); }
+
+    /* 1 - speed in m/s */
+    if (close(s[0], A.v_i, TOL)) push(1, 1, 1, 'correct');
+    else if (close(s[0], T.trapX36, TOL)) push(1, 0, 1, 'multiplied by 3.6 instead of dividing');
+    else push(1, 0, 1, isFinite(s[0]) ? 'incorrect' : 'blank');
+
+    /* 2 - stopping time; ECF from the student's own speed */
+    var tE = isFinite(s[0]) ? Math.abs(s[0]) / g.a : NaN;
+    if (close(Math.abs(s[1]), A.t, TOL) || close(Math.abs(s[1]), tE, TOL)) {
+      if (s[1] < 0) push(2, 1, 2, 'right size, negative time: sign of a mishandled');
+      else push(2, 2, 2, close(s[1], A.t, TOL) ? 'correct' : 'correct method on own stage 1 (ECF)');
+    } else if (close(Math.abs(s[1]), T.trapTkmh, TOL)) push(2, 0, 2, 'used km/h directly');
+    else push(2, 0, 2, isFinite(s[1]) ? 'incorrect' : 'blank');
+
+    /* 3 - stopping distance; ECF from own speed, or from own speed and time */
+    var xE1 = isFinite(s[0]) ? s[0] * s[0] / (2 * g.a) : NaN;
+    var xE2 = (isFinite(s[0]) && isFinite(s[1])) ? 0.5 * Math.abs(s[0] * s[1]) : NaN;
+    var vtE = (isFinite(s[0]) && isFinite(s[1])) ? Math.abs(s[0] * s[1]) : NaN;
+    if (close(Math.abs(s[2]), A.dx, TOL)) push(3, s[2] < 0 ? 1 : 2, 2, s[2] < 0 ? 'right size, negative distance' : 'correct');
+    else if (close(s[2], T.trapVT, TOL) || close(s[2], vtE, TOL)) push(3, 0, 2, 'used distance = speed x time (twice the true distance)');
+    else if (close(s[2], T.trapKmh, TOL)) push(3, 0, 2, 'used km/h directly');
+    else if (close(Math.abs(s[2]), xE1, TOL) || close(Math.abs(s[2]), xE2, TOL)) push(3, 2, 2, 'correct method on own earlier answers (ECF)');
+    else push(3, 0, 2, isFinite(s[2]) ? 'incorrect' : 'blank');
+
+    /* 4 - gap to the marker; ECF from own stage 3 */
+    var gE = isFinite(s[2]) ? Math.abs(Math.abs(s[2]) - g.d) : NaN;
+    if (close(Math.abs(s[3]), A.gap, TOL, 0.6)) push(4, 1, 1, 'correct');
+    else if (close(Math.abs(s[3]), gE, TOL, 0.6)) push(4, 1, 1, 'correct on own stage 3 (ECF)');
+    else push(4, 0, 1, isFinite(s[3]) ? 'incorrect' : 'blank');
+
+    /* 5 - area under the recorder graph; independent of earlier stages */
+    if (close(s[4], A.area, TOL)) push(5, 2, 2, 'correct');
+    else if (close(s[4], T.trapRect, TOL)) push(5, 0, 2, 'used the whole rectangle - the half is missing');
+    else push(5, 0, 2, isFinite(s[4]) ? 'incorrect' : 'blank');
+
+    /* 6 - cross-check; ECF from own stages 3 and 5 */
+    var cE = (isFinite(s[2]) && isFinite(s[4]) && s[4] !== 0)
+           ? Math.abs(Math.abs(s[2]) - s[4]) / Math.abs(s[4]) * 100 : NaN;
+    if (close(s[5], A.xcheck, TOL, XABS)) push(6, 1, 1, 'correct');
+    else if (close(s[5], cE, TOL, XABS)) push(6, 1, 1, 'correct on own stages 3 and 5 (ECF)');
+    else push(6, 0, 1, isFinite(s[5]) ? 'incorrect' : 'blank');
+
+    /* gate */
+    push('Q', gate === 1 ? 1 : 0, 1, gate === 1 ? 'correct' : (gate >= 0 ? 'incorrect' : 'blank'));
+
+    /* verdict: right, or consistent with the student's own stage 3 */
+    var truthV = C.truth.overran ? 'O' : 'S';
+    var ownV = isFinite(s[2]) ? (Math.abs(s[2]) > g.d ? 'O' : 'S') : null;
+    if (verdict === truthV) push('V', 2, 2, 'correct');
+    else if (verdict && verdict === ownV) push('V', 2, 2, 'consistent with own stage 3 (ECF)');
+    else push('V', 0, 2, verdict ? 'incorrect' : 'blank');
+
+    var got = 0, max = 0;
+    R.forEach(function(r){ got += r.got; max += r.max; });
+    return { rows: R, got: got, max: max };
+  }
+
+  root.PF1D = { generate: generate, mark: mark, normalizeName: normalizeName, TOL: TOL, XABS: XABS };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ===================== APP ===================== */
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s);};
+var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var C=null, S=null, KEY=null;
+function n(v,d){ return Number(v).toFixed(d); }
+function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function num(v){ var x=parseFloat(String(v==null?'':v).trim().replace(/,/g,'')); return isFinite(x)?x:NaN; }
+function fmtIn(v){ return isFinite(v) ? String(v) : '\u2014'; }
+
+var STAGES=[
+ {id:'v_i', title:'Speed at the beacon in metres per second', unit:'m/s',
+  eq:'v (m/s) = v (km/h) \u00f7 3.6',
+  ask:'The trackside camera records speed in kilometres per hour. Every equation in this file needs metres per second, so convert first.',
+  note:'1 km/h = 1000 m \u00f7 3600 s, which is why you divide by 3.6.'},
+
+ {id:'t', title:'Time the train took to stop', unit:'s',
+  eq:'v<sub>f</sub> = v<sub>i</sub> + a t',
+  ask:'From the beacon, the train braked at a constant rate until it stopped. It ends at rest, so v<sub>f</sub> = 0. It is slowing down, so the acceleration is negative.',
+  note:'If your time comes out negative, check the sign you used for a.'},
+
+ {id:'dx', title:'Stopping distance', unit:'m',
+  eq:'v<sub>f</sub>\u00b2 = v<sub>i</sub>\u00b2 + 2 a \u0394x',
+  ask:'How far did the train travel from the beacon before it stopped? Use v<sub>f</sub> = 0 and the same negative acceleration.'},
+
+ {id:'gap', title:'Distance between the stopping point and the marker', unit:'m',
+  eq:'gap = | \u0394x \u2212 distance from beacon to marker |',
+  ask:'Compare your stopping distance with the surveyed distance from the beacon to the stop marker. Give the size of the gap as a positive number. You will say which side of the marker the train stopped on in your verdict.'},
+
+ {id:'area', title:'Stopping distance from the event recorder', unit:'m', sealed:true,
+  eq:'\u0394x = area under the v\u2013t graph = \u00bd \u00d7 base \u00d7 height',
+  ask:'Break the seal. The train\u2019s event recorder logged its speed every moment of the stop. It knows nothing about the camera, the brake figure or your calculation. The displacement is the area under its velocity\u2013time graph.',
+  note:'Read both values straight off the two marked points on the graph.'},
+
+ {id:'xcheck', title:'Cross-check: how well do the two methods agree?', unit:'%',
+  eq:'difference = | \u0394x (stage 3) \u2212 \u0394x (stage 5) | \u00f7 \u0394x (stage 5) \u00d7 100',
+  ask:'Stage 3 came from equations that assume the braking was perfectly constant. Stage 5 came from what the recorder actually logged. Compare them.'}
+];
+
+/* ---------- persistence: this browser only ---------- */
+function blank(){
+  return { name:'', startedAt:Date.now(), resumedAt:[], open:0,
+    locked:[false,false,false,false,false,false],
+    vals:['','','','','',''], work:['','','','','',''], photos:[null,null,null,null,null,null],
+    seal:false, gate:-1, gateLocked:false, verdict:null, verdictLocked:false,
+    cer:{c:'',e:'',r:'',x1:'',x2:''} };
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); return true; }catch(e){ return false; } }
+function load(){ try{ var t=localStorage.getItem(KEY); return t?JSON.parse(t):null; }catch(e){ return null; } }
+
+/* ---------- brief & evidence ---------- */
+function buildBrief(){
+  $('#brief').innerHTML =
+   '<p>At 23:47 a commuter train arrived at platform 2. A passenger has complained that when the doors were released, the front doors opened beyond the end of the platform, over the track. Nobody stepped out.</p>'
+  +'<p>The driver says he applied the brake exactly at the braking beacon, as the rulebook requires, and that the train stopped before the stop marker at the end of the platform.</p>'
+  +'<p>The trackside camera at the beacon recorded the train\u2019s speed. The on-board accelerometer recorded a steady braking rate all the way to rest. The distance from the beacon to the marker has been surveyed. The train\u2019s event recorder is sealed until stage 5.</p>'
+  +'<p style="margin-bottom:0"><strong>Your job is to establish whether the train stopped short of the marker or overran it.</strong> Not who is to blame \u2014 only where the train stopped.</p>';
+}
+function card(h,rows,full){
+  return '<div class="evi"><h4>'+h+'</h4><dl>'
+    +rows.map(function(r){return '<div class="row"><dt>'+r[0]+'</dt><dd>'+r[1]+'</dd></div>';}).join('')
+    +'</dl>'+(full?'<div class="full">'+full+'</div>':'')+'</div>';
+}
+function buildEvidence(){
+  var g=C.given;
+  $('#eviGrid').innerHTML =
+   card('TRACKSIDE CAMERA',[['Location','Braking beacon'],['Speed recorded', g.v_kmh+' km/h'],['Time','23:47:12']],
+     'The brake was applied as the front passed the beacon.')
+  +card('ON-BOARD ACCELEROMETER',[['Braking rate', g.a.toFixed(2)+' m/s\u00b2'],['Braking','Constant, to rest'],['Direction','Slowing down']],
+     'The figure is the size of the deceleration. In your equations it is negative.')
+  +card('TRACK SURVEY',[['Beacon to stop marker', g.d+' m'],['Track','Straight and level'],['Stop marker','End of platform 2']])
+  +card('STATEMENTS',[['Driver','Stopped short'],['Passenger','Doors over track'],['Event recorder','Sealed \u2014 stage 5']]);
+  renderPlan();
+}
+function renderPlan(){
+  var g=C.given, W=860, H=230, x0=90, xM=W-150;
+  $('#planBox').innerHTML =
+   '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'
+   +'<rect width="'+W+'" height="'+H+'" fill="#05070b"/>'
+   +'<rect x="'+(xM-300)+'" y="70" width="300" height="22" fill="#18222e"/>'
+   +'<rect x="'+(xM-300)+'" y="70" width="300" height="3" fill="#a8762c" opacity=".8"/>'
+   +'<text x="'+(xM-150)+'" y="62" fill="#6d7681" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="11" letter-spacing="1.5">PLATFORM 2</text>'
+   +'<rect x="20" y="104" width="'+(W-40)+'" height="3" fill="#2c3a48"/><rect x="20" y="118" width="'+(W-40)+'" height="3" fill="#2c3a48"/>'
+   +'<path d="M'+(x0-9)+' 112 l9 -6 l9 6 l-9 6 z" fill="#e8a33d"/>'
+   +'<text x="'+x0+'" y="146" fill="#e8a33d" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="12">braking beacon</text>'
+   +'<line x1="'+xM+'" y1="70" x2="'+xM+'" y2="36" stroke="#41566b" stroke-width="2.4"/>'
+   +'<rect x="'+(xM-17)+'" y="18" width="34" height="20" rx="2" fill="#e9e7e2" opacity=".9"/>'
+   +'<text x="'+xM+'" y="32" fill="#0d1117" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="10" font-weight="700">STOP</text>'
+   +'<text x="'+(xM+12)+'" y="88" fill="#9aa3ad" font-family="Helvetica Neue,Arial" font-size="11">platform ends</text>'
+   +'<line x1="'+x0+'" y1="180" x2="'+xM+'" y2="180" stroke="#9aa3ad" stroke-width="1.4"/>'
+   +'<line x1="'+x0+'" y1="172" x2="'+x0+'" y2="188" stroke="#9aa3ad" stroke-width="1.4"/>'
+   +'<line x1="'+xM+'" y1="172" x2="'+xM+'" y2="188" stroke="#9aa3ad" stroke-width="1.4"/>'
+   +'<text x="'+((x0+xM)/2)+'" y="172" fill="#e9e7e2" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="14" font-weight="700">'+g.d+' m</text>'
+   +'<text x="'+(x0-22)+'" y="98" fill="#6fb7e8" text-anchor="end" font-family="Helvetica Neue,Arial" font-size="12">train \u2192</text>'
+   +'</svg>'
+   +'<div class="pcap">Not to scale. The train travels left to right. Braking starts at the beacon; the stop marker is at the end of the platform.</div>';
+}
+
+/* ---------- the sealed v-t graph ---------- */
+function niceStep(max){
+  var raw=max/6, p=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/p;
+  return (m<=1?1:m<=2?2:m<=5?5:10)*p;
+}
+function recorderSVG(){
+  var s=C.sealed, W=700, H=380, L=74, R=28, T=40, B=58;
+  var xs=niceStep(s.t_rec*1.15), ys=niceStep(s.v_rec*1.2);
+  var xMax=Math.ceil(s.t_rec*1.15/xs)*xs, yMax=Math.ceil(s.v_rec*1.2/ys)*ys;
+  function X(t){ return L+(W-L-R)*t/xMax; } function Y(v){ return H-B-(H-T-B)*v/yMax; }
+  var grid='', i;
+  for(i=0;i<=xMax+1e-9;i+=xs){ grid+='<line x1="'+X(i)+'" y1="'+T+'" x2="'+X(i)+'" y2="'+(H-B)+'" stroke="#1a2430"/>'
+    +'<text x="'+X(i)+'" y="'+(H-B+20)+'" fill="#9aa3ad" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="12">'+(+i.toFixed(2))+'</text>'; }
+  for(i=0;i<=yMax+1e-9;i+=ys){ grid+='<line x1="'+L+'" y1="'+Y(i)+'" x2="'+(W-R)+'" y2="'+Y(i)+'" stroke="#1a2430"/>'
+    +'<text x="'+(L-10)+'" y="'+(Y(i)+4)+'" fill="#9aa3ad" text-anchor="end" font-family="Helvetica Neue,Arial" font-size="12">'+(+i.toFixed(2))+'</text>'; }
+  return '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Velocity-time graph from the event recorder">'
+   +'<rect width="'+W+'" height="'+H+'" fill="#05070b"/>'
+   +'<text x="'+L+'" y="24" fill="#6d7681" font-family="Helvetica Neue,Arial" font-size="11" letter-spacing="1.8">EVENT RECORDER \u00b7 WHEEL SPEED \u00b7 t = 0 AT THE BEACON</text>'
+   +grid
+   +'<line x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'" stroke="#9aa3ad" stroke-width="1.6"/>'
+   +'<line x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(H-B)+'" stroke="#9aa3ad" stroke-width="1.6"/>'
+   +'<text x="'+((L+W-R)/2)+'" y="'+(H-14)+'" fill="#e9e7e2" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="13">time  t  (s)</text>'
+   +'<text x="20" y="'+((T+H-B)/2)+'" fill="#e9e7e2" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="13" transform="rotate(-90 20 '+((T+H-B)/2)+')">velocity  v  (m/s)</text>'
+   +'<line x1="'+X(0)+'" y1="'+Y(s.v_rec)+'" x2="'+X(s.t_rec)+'" y2="'+Y(0)+'" stroke="#e8a33d" stroke-width="3"/>'
+   +'<circle cx="'+X(0)+'" cy="'+Y(s.v_rec)+'" r="5.5" fill="#e8a33d"/>'
+   +'<circle cx="'+X(s.t_rec)+'" cy="'+Y(0)+'" r="5.5" fill="#e8a33d"/>'
+   +'<text x="'+(X(0)+12)+'" y="'+(Y(s.v_rec)-10)+'" fill="#e9e7e2" font-family="Helvetica Neue,Arial" font-size="13" font-weight="700">t = 0 s,  v = '+s.v_rec.toFixed(1)+' m/s</text>'
+   +'<text x="'+X(s.t_rec)+'" y="'+(Y(0)-14)+'" fill="#e9e7e2" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="13" font-weight="700">t = '+s.t_rec.toFixed(1)+' s,  v = 0</text>'
+   +'</svg>';
+}
+
+/* ---------- stages ---------- */
+function buildStages(){
+  $('#stages').innerHTML = STAGES.map(function(s,i){
+    var sealedHtml = s.sealed
+      ? '<div class="sealed"><h4>SEALED \u2014 EVENT RECORDER, VELOCITY\u2013TIME LOG</h4>'
+        +'<p>Downloaded from the train after the incident. Opening it does not change any answer you have already locked.</p>'
+        +'<div id="sealSlot"><p style="margin-top:12px"><button class="btn ghost" id="openSealed">Break the seal</button></p></div></div>'
+      : '';
+    return '<div class="stage locked" id="st'+i+'">'
+      +'<div class="stHead"><div class="stNum">'+(i+1)+'</div><div class="stTitle">'+s.title+'</div></div>'
+      +'<div class="stBody"><p class="ask">'+s.ask+'</p><div class="eq">'+s.eq+'</div>'+sealedHtml
+      +'<div class="work"><label for="wk'+i+'">Working \u2014 type the equation with your numbers substituted, or add a photo of your handwritten working (or both)</label>'
+      +'<textarea id="wk'+i+'" spellcheck="false"></textarea>'
+      +'<div class="photoRow"><input type="file" accept="image/*" id="ph'+i+'">'
+      +'<button class="photoBtn" id="pb'+i+'" type="button">Add photo of working</button>'
+      +'<button class="photoBtn hidden" id="pr'+i+'" type="button">Remove photo</button>'
+      +'<span class="photoMsg" id="pm'+i+'"></span></div>'
+      +'<img class="thumb hidden" id="pt'+i+'" alt="Photo of handwritten working for stage '+(i+1)+'"></div>'
+      +'<div class="ansRow"><input type="text" inputmode="decimal" id="in'+i+'" placeholder="your answer">'
+      +'<span class="unit">'+s.unit+'</span><button class="btn" id="lk'+i+'">Lock answer</button></div>'
+      +'<div class="fb" id="fb'+i+'"></div>'
+      +(s.note?'<div class="note">'+s.note+'</div>':'')+'</div></div>';
+  }).join('');
+
+  STAGES.forEach(function(s,i){
+    var wk=$('#wk'+i), inp=$('#in'+i);
+    wk.value=S.work[i]; inp.value=S.vals[i];
+    wk.addEventListener('input',function(){ if(!S.locked[i]){ S.work[i]=wk.value; save(); } });
+    inp.addEventListener('input',function(){ if(!S.locked[i]){ S.vals[i]=inp.value; save(); disarm(i); } });
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter') lock(i); });
+    $('#pb'+i).addEventListener('click',function(){ if(!S.locked[i]) $('#ph'+i).click(); });
+    $('#ph'+i).addEventListener('change',function(){ var f=this.files&&this.files[0]; this.value=''; if(f) addPhoto(i,f); });
+    $('#pr'+i).addEventListener('click',function(){ if(S.locked[i]) return; S.photos[i]=null; save(); showPhoto(i); disarm(i); });
+    showPhoto(i);
+    $('#lk'+i).addEventListener('click',function(){ lock(i); });
+  });
+  $('#openSealed').addEventListener('click',function(){ S.seal=true; save(); showSeal(); });
+  if(S.seal) showSeal();
+
+  for(var i=0;i<STAGES.length;i++){
+    if(S.locked[i]) markLocked(i);
+  }
+  var first = S.locked.indexOf(false);
+  if(first>=0) openStage(first,true); else afterStages(true);
+}
+/* ---------- photos of handwritten working ----------
+   Shrunk in the browser before saving, so six photos fit comfortably in
+   the browser's storage and in the PDF. Nothing is uploaded anywhere. */
+function showPhoto(i){
+  var d=S.photos[i], t=$('#pt'+i), pb=$('#pb'+i), pr=$('#pr'+i);
+  if(d){ t.src=d; t.classList.remove('hidden'); pb.textContent='Replace photo'; pr.classList.remove('hidden'); }
+  else { t.removeAttribute('src'); t.classList.add('hidden'); pb.textContent='Add photo of working'; pr.classList.add('hidden'); }
+  if(S.locked[i]){ pb.classList.add('hidden'); pr.classList.add('hidden'); }
+}
+function addPhoto(i,file){
+  var msg=$('#pm'+i); msg.className='photoMsg'; msg.textContent='Preparing photo\u2026';
+  if(!/^image\//.test(file.type||'image/')){ msg.className='photoMsg bad'; msg.textContent='That file is not an image.'; return; }
+  var url=URL.createObjectURL(file), img=new Image();
+  img.onload=function(){
+    var MAX=1200, w=img.naturalWidth, h=img.naturalHeight, k=Math.min(1, MAX/Math.max(w,h));
+    var cv=document.createElement('canvas'); cv.width=Math.round(w*k); cv.height=Math.round(h*k);
+    var cx=cv.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,cv.width,cv.height);
+    cx.drawImage(img,0,0,cv.width,cv.height);
+    URL.revokeObjectURL(url);
+    var data=cv.toDataURL('image/jpeg',0.62);
+    if(S.locked[i]) return;
+    S.photos[i]=data; showPhoto(i); disarm(i);
+    if(save()){ msg.textContent='Photo added. It locks with your answer.'; }
+    else { msg.className='photoMsg bad';
+      msg.textContent='Photo added to the page, but this browser had no room to back it up. Do not close the page before you save your PDF.'; }
+  };
+  img.onerror=function(){ URL.revokeObjectURL(url); msg.className='photoMsg bad';
+    msg.textContent='This photo could not be read. Take it again, or save it as a JPG or PNG and try once more.'; };
+  img.src=url;
+}
+function showSeal(){
+  var slot=$('#sealSlot'); if(!slot) return;
+  slot.innerHTML='<div class="figbox">'+recorderSVG()+'</div>';
+}
+function openStage(i,quiet){
+  var el=$('#st'+i); if(!el) return;
+  el.classList.remove('locked'); el.classList.add('open');
+  if(!quiet){ el.scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'}); }
+}
+function markLocked(i){
+  var el=$('#st'+i);
+  el.classList.remove('open','locked'); el.classList.add('done');
+  $('#in'+i).disabled=true; $('#wk'+i).disabled=true;
+  if($('#pb'+i)){ showPhoto(i); $('#pm'+i).textContent = S.photos[i] ? 'Photo locked with your answer.' : ''; }
+  var b=$('#lk'+i); b.disabled=true; b.classList.remove('warn'); b.textContent='Locked';
+  var fb=$('#fb'+i); fb.className='fb show info';
+  fb.textContent='Locked: '+S.vals[i]+' '+STAGES[i].unit;
+}
+var armed={};
+function disarm(i){ if(armed[i]){ armed[i]=false; var b=$('#lk'+i); b.classList.remove('warn'); b.textContent='Lock answer'; $('#fb'+i).className='fb'; } }
+function lock(i){
+  if(S.locked[i]) return;
+  var s=STAGES[i], fb=$('#fb'+i), b=$('#lk'+i);
+  var v=num($('#in'+i).value);
+  fb.className='fb show';
+  if(!isFinite(v)){ fb.classList.add('bad'); fb.textContent='Enter a number. Units are already shown.'; return; }
+  if(s.sealed && !S.seal){ fb.classList.add('bad'); fb.textContent='Break the seal first. You need the recorder\u2019s graph for this stage.'; return; }
+  if(!armed[i]){
+    armed[i]=true; b.classList.add('warn'); b.textContent='Confirm \u2014 this cannot be changed';
+    fb.classList.add('info');
+    fb.textContent = ($('#wk'+i).value.trim()==='' && !S.photos[i] ? 'You have no working \u2014 typed or photographed \u2014 and working earns marks. ' : '')
+      +'Press again to lock '+v+' '+s.unit+'.';
+    return;
+  }
+  armed[i]=false;
+  S.vals[i]=String(v); S.work[i]=$('#wk'+i).value; S.locked[i]=true; save();
+  markLocked(i);
+  if(i+1<STAGES.length) openStage(i+1); else afterStages(false);
+}
+
+/* ---------- after the six stages: gate, verdict ---------- */
+var GATE_OPTS=[
+  'The train overran the marker.',
+  'Treating the braking as constant describes the real stop well enough to trust the stopping distance from stage 3.',
+  'The driver applied the brake at the right place.',
+  'The passenger was mistaken.'
+];
+function afterStages(quiet){
+  $('#gateWrap').classList.remove('hidden');
+  $('#gateAsk').innerHTML='Your two stopping distances differ by <strong>'+esc(S.vals[5])+'%</strong>. What does that agreement let you conclude?';
+  $('#gateChoices').innerHTML=GATE_OPTS.map(function(o,k){
+    return '<button class="choice'+(S.gate===k?' sel':'')+'" data-k="'+k+'">'+o+'</button>';}).join('');
+  if(S.gateLocked){ lockGateUI(); showVerdict(true); return; }
+  document.querySelectorAll('#gateChoices .choice').forEach(function(b){
+    b.addEventListener('click',function(){
+      if(S.gateLocked) return;
+      document.querySelectorAll('#gateChoices .choice').forEach(function(x){x.classList.remove('sel');});
+      b.classList.add('sel'); S.gate=+b.dataset.k; save();
+      $('#gateBtn').disabled=false; gArmed=false; $('#gateBtn').classList.remove('warn'); $('#gateBtn').textContent='Lock answer';
+    });
+  });
+  $('#gateBtn').disabled = S.gate<0;
+  $('#gateBtn').onclick=function(){
+    if(!gArmed){ gArmed=true; this.classList.add('warn'); this.textContent='Confirm \u2014 this cannot be changed'; return; }
+    S.gateLocked=true; save(); lockGateUI(); showVerdict(false);
+  };
+  if(!quiet) $('#gateWrap').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});
+}
+var gArmed=false, vArmed=false;
+function lockGateUI(){
+  $('#gateStage').classList.remove('open'); $('#gateStage').classList.add('done');
+  document.querySelectorAll('#gateChoices .choice').forEach(function(x){x.disabled=true;});
+  var b=$('#gateBtn'); b.disabled=true; b.classList.remove('warn'); b.textContent='Locked';
+}
+function showVerdict(quiet){
+  $('#verdictWrap').classList.remove('hidden');
+  $('#verdictAsk').innerHTML='Your stopping distance: <strong>'+esc(S.vals[2])+' m</strong>. Distance from the beacon to the marker: <strong>'
+    +C.given.d+' m</strong>. Your gap: <strong>'+esc(S.vals[3])+' m</strong>.';
+  document.querySelectorAll('.vcard').forEach(function(b){
+    if(S.verdict===b.dataset.v) b.classList.add('sel');
+    b.addEventListener('click',function(){
+      if(S.verdictLocked) return;
+      document.querySelectorAll('.vcard').forEach(function(x){x.classList.remove('sel');});
+      b.classList.add('sel'); S.verdict=b.dataset.v; save();
+      $('#verdictBtn').disabled=false; vArmed=false; $('#verdictBtn').classList.remove('warn'); $('#verdictBtn').textContent='File the verdict';
+    });
+  });
+  $('#verdictBtn').disabled = !S.verdict;
+  $('#verdictBtn').onclick=function(){
+    if(!vArmed){ vArmed=true; this.classList.add('warn'); this.textContent='Confirm \u2014 this cannot be changed'; return; }
+    S.verdictLocked=true; save(); fileVerdict(false);
+  };
+  if(S.verdictLocked){ fileVerdict(true); return; }
+  if(!quiet) $('#verdictWrap').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});
+}
+function fileVerdict(quiet){
+  $('#verdictStage').classList.remove('open'); $('#verdictStage').classList.add('done');
+  document.querySelectorAll('.vcard').forEach(function(x){x.disabled=true;});
+  var b=$('#verdictBtn'); b.disabled=true; b.classList.remove('warn'); b.textContent='Filed';
+  var f=$('#verdictFb'); f.className='fb show info';
+  f.textContent='Verdict filed: '+(S.verdict==='O'?'the train overran the stop marker.':'the train stopped short of the marker.');
+  buildReplay(quiet); buildCER();
+}
+
+/* ---------- reconstruction, from the student's own numbers ---------- */
+function buildReplay(quiet){
+  $('#replayWrap').classList.remove('hidden');
+  renderReplay();
+  $('#replayAgain').onclick=renderReplay;
+  if(!quiet) $('#replayWrap').scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'});
+}
+function renderReplay(){
+  var g=C.given, W=860, H=250, x0=90, xM=W-230;
+  var dx=Math.abs(num(S.vals[2])), sc=(xM-x0)/g.d;
+  var off=false, xs=x0+dx*sc;
+  if(!isFinite(dx)) { $('#replayBox').innerHTML='<div class="rcap">No stopping distance was locked, so there is nothing to draw.</div>'; return; }
+  if(xs>W-24){ xs=W-24; off=true; }
+  var past = dx>g.d;
+  var col = past ? '#d1604f' : '#5fb87a';
+  var trainW=150, startX=x0-trainW-8, endX=xs-trainW;
+  var mv = reduced ? '' :
+    '<animateTransform attributeName="transform" type="translate" from="'+(startX-endX).toFixed(1)+' 0" to="0 0" dur="3.6s" '
+    +'fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.333 0.667 0.667 1"/>';
+  $('#replayBox').innerHTML =
+   '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'
+   +'<rect width="'+W+'" height="'+H+'" fill="#05070b"/>'
+   +'<rect x="'+(xM-300)+'" y="74" width="300" height="20" fill="#18222e"/>'
+   +'<rect x="'+(xM-300)+'" y="74" width="300" height="3" fill="#a8762c" opacity=".8"/>'
+   +'<rect x="20" y="118" width="'+(W-40)+'" height="3" fill="#2c3a48"/><rect x="20" y="132" width="'+(W-40)+'" height="3" fill="#2c3a48"/>'
+   +'<path d="M'+(x0-9)+' 126 l9 -6 l9 6 l-9 6 z" fill="#e8a33d"/>'
+   +'<line x1="'+xM+'" y1="74" x2="'+xM+'" y2="40" stroke="#41566b" stroke-width="2.4"/>'
+   +'<rect x="'+(xM-17)+'" y="22" width="34" height="20" rx="2" fill="#e9e7e2" opacity=".9"/>'
+   +'<text x="'+xM+'" y="36" fill="#0d1117" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="10" font-weight="700">STOP</text>'
+   +'<line x1="'+xM+'" y1="96" x2="'+xM+'" y2="150" stroke="#e9e7e2" stroke-width="1.4" stroke-dasharray="4 3"/>'
+   +'<g transform="translate('+endX.toFixed(1)+' 0)"><g>'+mv
+   +'<rect x="0" y="96" width="'+(trainW-20)+'" height="30" rx="5" fill="#2c3c4d" stroke="#41566b"/>'
+   +'<path d="M'+(trainW-20)+' 96 L'+(trainW-8)+' 96 Q'+trainW+' 100 '+trainW+' 112 L'+trainW+' 126 L'+(trainW-20)+' 126 Z" fill="#2c3c4d" stroke="#41566b"/>'
+   +'<g fill="#e8c27a" opacity=".55"><rect x="10" y="102" width="20" height="11" rx="2"/><rect x="40" y="102" width="20" height="11" rx="2"/><rect x="70" y="102" width="20" height="11" rx="2"/><rect x="100" y="102" width="20" height="11" rx="2"/></g>'
+   +'</g></g>'
+   +'<line x1="'+x0+'" y1="180" x2="'+xM+'" y2="180" stroke="#9aa3ad" stroke-width="1.3"/>'
+   +'<text x="'+((x0+xM)/2)+'" y="172" fill="#9aa3ad" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="12">beacon to marker '+g.d+' m</text>'
+   +'<line x1="'+x0+'" y1="214" x2="'+xs+'" y2="214" stroke="'+col+'" stroke-width="2"/>'
+   +'<line x1="'+xs+'" y1="150" x2="'+xs+'" y2="222" stroke="'+col+'" stroke-width="1.4" stroke-dasharray="3 3"/>'
+   +'<text x="'+Math.min(Math.max((x0+xs)/2,140),W-140)+'" y="236" fill="'+col+'" text-anchor="middle" font-family="Helvetica Neue,Arial" font-size="13" font-weight="700">your stopping distance '+esc(S.vals[2])+' m'+(off?' (beyond the drawing)':'')+'</text>'
+   +'</svg>'
+   +'<div class="rcap">On your numbers, the front of the train came to rest <strong>'
+   +n(Math.abs(dx-g.d),1)+' m '+(past?'past':'before')+'</strong> the stop marker. '
+   +'The train moves fast at first and slowly at the end \u2014 that is what a constant deceleration looks like. Your verdict was: <strong>'
+   +(S.verdict==='O'?'overran':'stopped short')+'</strong>.</div>';
+}
+
+/* ---------- CER and cross-examination ---------- */
+function buildCER(){
+  $('#cerWrap').classList.remove('hidden');
+  var v=esc(S.vals[0]), t=esc(S.vals[1]);
+  var vt = (isFinite(num(S.vals[0]))&&isFinite(num(S.vals[1]))) ? n(Math.abs(num(S.vals[0])*num(S.vals[1])),1) : '\u2014';
+  $('#xq1').innerHTML = 'Counsel for the train operator: \u201cYou found the train was doing '+v+' m/s at the beacon and took '+t
+    +' s to stop. Distance is speed multiplied by time: '+v+' \u00d7 '+t+' = '+vt+' m. That is how far it went.\u201d Every number in that sentence is yours. Explain what is wrong with the method, and say what the distance really is.';
+  $('#xq2').innerHTML = S.verdict==='O'
+    ? 'The driver\u2019s representative: \u201cHe applied the brake exactly at the beacon, as the rulebook says. If the train still overran, the brakes must have been faulty.\u201d Say what your evidence does and does not establish.'
+    : 'The passenger: \u201cI watched the front doors open over the track. Your numbers must be wrong.\u201d Answer using your cross-check, and be careful about what you claim about the passenger.';
+  var map={cClaim:'c',cEvid:'e',cReason:'r',cX1:'x1',cX2:'x2'};
+  Object.keys(map).forEach(function(id){
+    var el=document.getElementById(id); el.value=S.cer[map[id]]||'';
+    el.addEventListener('input',function(){ S.cer[map[id]]=el.value; save();
+      $('#savedNote').textContent='Saved in this browser \u00b7 '+new Date().toLocaleTimeString(); });
+  });
+  $('#printBtn').onclick=function(){ buildReport(); window.print(); };
+  window.addEventListener('beforeprint', buildReport);
+}
+
+/* ---------- printable report ---------- */
+function answerLine(){
+  return [C.nameDisplay].concat(S.vals.map(function(v){return v===''?'-':v;}))
+    .concat([S.gateLocked?S.gate:'-', S.verdictLocked?S.verdict:'-']).join('|');
+}
+function buildReport(){
+  if(!C) return;
+  var g=C.given, sl=C.sealed;
+  var rows=STAGES.map(function(s,i){
+    return '<tr><td>'+(i+1)+' &middot; '+s.title+'</td>'
+      +'<td class="wk">'+esc(S.work[i]||'')+(S.photos[i]?(S.work[i]?'\n':'')+'[photo of working \u2014 see below]':'')+'</td>'
+      +'<td class="num ans">'+(S.locked[i]?esc(S.vals[i])+' '+s.unit:'not locked')+'</td></tr>';
+  }).join('');
+  rows += '<tr><td>Cross-check question</td><td colspan="2">'+(S.gateLocked?esc(GATE_OPTS[S.gate]):'not answered')+'</td></tr>';
+  var qa=[['Claim','c'],['Evidence','e'],['Reasoning','r']].map(function(p){
+    return '<div class="qa"><div class="q">'+p[0]+'</div><div class="a">'+esc(S.cer[p[1]])+'</div></div>';}).join('');
+  var xq=[['#xq1','x1'],['#xq2','x2']].map(function(p){
+    var q=document.querySelector(p[0]);
+    return '<div class="qa"><div class="q">'+esc(q?q.textContent:'')+'</div><div class="a">'+esc(S.cer[p[1]])+'</div></div>';}).join('');
+  var started=new Date(S.startedAt);
+  $('#printReport').innerHTML =
+    '<div class="pcase">1D MOTION &nbsp;&middot;&nbsp; INDIVIDUAL ASSESSMENT</div>'
+   +'<h1>The Platform Overrun</h1>'
+   +'<p class="pmeta"><strong>'+esc(C.nameDisplay)+'</strong> &nbsp;&middot;&nbsp; started '+started.toLocaleString()
+     +' &nbsp;&middot;&nbsp; report generated '+new Date().toLocaleString()
+     +(S.resumedAt.length?' &nbsp;&middot;&nbsp; page reopened '+S.resumedAt.length+'&times;':'')+'</p>'
+   +'<h2>EVIDENCE ISSUED</h2>'
+   +'<table><tr><th>Item</th><th>Value</th><th>Item</th><th>Value</th></tr>'
+   +'<tr><td>Speed at the beacon</td><td class="num">'+g.v_kmh+' km/h</td><td>Braking rate</td><td class="num">'+g.a.toFixed(2)+' m/s&sup2;</td></tr>'
+   +'<tr><td>Beacon to stop marker</td><td class="num">'+g.d+' m</td><td>Recorder graph points</td><td class="num">(0 s, '+sl.v_rec.toFixed(1)+' m/s) &amp; ('+sl.t_rec.toFixed(1)+' s, 0)</td></tr>'
+   +'</table>'
+   +'<h2>LOCKED ANSWERS</h2>'
+   +'<table><tr><th style="width:34%">Stage</th><th>Working</th><th style="width:22mm">Answer</th></tr>'+rows+'</table>'
+   +(S.photos.some(Boolean)?'<h2>HANDWRITTEN WORKING</h2>'+S.photos.map(function(d,i){
+       return d?'<div class="hw"><div class="q">Stage '+(i+1)+' \u00b7 '+STAGES[i].title+'</div><img src="'+d+'" alt=""></div>':''; }).join(''):'')
+   +'<h2>VERDICT</h2><p><span class="vd">'+(S.verdictLocked?(S.verdict==='O'?'OVERRAN THE MARKER':'STOPPED SHORT OF THE MARKER'):'NOT FILED')+'</span></p>'
+   +'<h2>CLAIM, EVIDENCE, REASONING</h2>'+qa
+   +'<h2>CROSS-EXAMINATION</h2>'+xq
+   +'<h2>ANSWER LINE FOR YOUR TEACHER</h2><div class="line">'+esc(answerLine())+'</div>'
+   +'<div class="foot">The Platform Overrun &middot; 1D motion individual assessment &middot; every student&rsquo;s evidence is generated from their name.</div>';
+}
+
+/* ---------- cinematic: verdict-neutral, it fades before the train stops ---------- */
+function playCine(done){
+  var cine=$('#cine'); cine.classList.remove('hidden');
+  var finished=false, raf=null;
+  function end(){ if(finished)return; finished=true; if(raf) cancelAnimationFrame(raf);
+    cine.classList.add('hidden'); done(); }
+  $('#cineSkip').onclick=end;
+  if(reduced){ end(); return; }
+
+  /* Timeline, in seconds from the start of the cinematic. */
+  var T_IN=0.5, T_BEACON=2.3, T_CUT=4.8, T_LINE=5.0, T_LINE2=5.45, T_END=6.75;
+
+  /* The motion matches the evidence: steady speed until the front of the
+     train reaches the beacon, then a constant deceleration. The braking rate
+     on screen is the same for every student and the cut always comes while
+     the train is still moving well short of the marker, so the footage never
+     hints at where this student's train stopped. */
+  var FRONT=240, BEACON=152, X0=-520;            // headlight x in train coords; beacon centre
+  var xB=BEACON-FRONT;                           // translate when the front is at the beacon
+  var v0=(xB-X0)/(T_BEACON-T_IN);                // px/s, constant until the beacon
+  var STOP_PX=728;                               // would come to rest near the marker...
+  var acc=v0*v0/(2*STOP_PX);                     // ...so the uniform deceleration is this
+  function trainX(t){
+    if(t<=T_IN) return X0;
+    if(t<=T_BEACON) return X0+v0*(t-T_IN);
+    var u=t-T_BEACON, ts=v0/acc; if(u>ts) u=ts;
+    return xB+v0*u-0.5*acc*u*u;
+  }
+
+  var st=document.createElement('style');
+  st.textContent =
+   '#cine svg{opacity:0;animation:kIn .5s ease-out forwards}'
+  +'#kCam{transform-box:view-box;transform-origin:600px 400px;animation:kPush 5s ease-out .2s forwards}'
+  +'@keyframes kPush{from{transform:scale(1.02)}to{transform:scale(1.11)}}'
+  /* a small jolt as the brake bites, nothing more */
+  +'#kShake{transform-box:view-box;animation:kJolt .45s ease-out '+T_BEACON+'s}'
+  +'@keyframes kJolt{0%,100%{transform:translate(0,0)}20%{transform:translate(2px,-1px)}'
+  +'45%{transform:translate(-2px,1px)}70%{transform:translate(1px,0)}}'
+  +'.k-lamp{animation:kFlick 6.5s ease-in-out infinite}'
+  +'@keyframes kFlick{0%,100%{opacity:1}45%{opacity:.82}50%{opacity:1}}'
+  +'.k-ts{animation:kTs 1.7s steps(1) infinite}'
+  +'@keyframes kTs{0%,100%{opacity:1}92%{opacity:.55}}'
+  +'.k-hud{animation:kIn .5s ease-out 1.4s forwards}@keyframes kIn{to{opacity:1}}';
+  document.head.appendChild(st);
+
+  var train=document.getElementById('kTrain'), spd=document.getElementById('kSpeed');
+  var cap=$('#cineCap'), cut=$('#cineCut'), line=$('#cineEnd');
+  var target=C.given.v_kmh, t0=null, braked=false, cutDone=false, lined=false, lined2=false;
+  function frame(ts){
+    if(finished) return;
+    if(t0===null) t0=ts;
+    var t=(ts-t0)/1000;
+    train.setAttribute('transform','translate('+trainX(Math.min(t,T_CUT)).toFixed(1)+' 0)');
+    /* the camera at the beacon settles on its reading as the front passes */
+    if(t>=1.8 && t<T_BEACON){
+      var p=(t-1.8)/(T_BEACON-1.8);
+      spd.textContent=Math.round(target*(0.6+0.4*p)+(1-p)*(Math.random()-0.5)*10)+' km/h';
+    }
+    if(t>=T_BEACON && !braked){ braked=true; spd.textContent=target+' km/h';
+      cap.style.transition='opacity .35s'; cap.style.opacity='1'; }
+    if(t>=T_CUT && !cutDone){ cutDone=true;
+      cut.style.opacity='1'; cap.style.transition='none'; cap.style.opacity='0'; }
+    if(t>=T_LINE && !lined){ lined=true; line.style.transition='opacity .35s'; line.style.opacity='1'; }
+    if(t>=T_LINE2 && !lined2){ lined2=true; line.querySelector('.ce2').style.opacity='1'; }
+    if(t>=T_END){ end(); return; }
+    raf=requestAnimationFrame(frame);
+  }
+  train.setAttribute('transform','translate('+X0+' 0)');
+  raf=requestAnimationFrame(frame);
+}
+
+/* ---------- start ---------- */
+$('#startBtn').addEventListener('click',start);
+$('#nameIn').addEventListener('keydown',function(e){ if(e.key==='Enter') start(); });
+
+function start(){
+  var name=$('#nameIn').value.trim().replace(/\s+/g,' ');
+  if(PF1D.normalizeName(name).length<3){
+    $('#nameIn').focus(); $('#nameIn').style.borderColor='var(--no)'; return;
+  }
+  C=PF1D.generate(name);
+  KEY='pf-1d-platform-overrun::'+C.name;
+  var prev=load();
+  if(prev && prev.locked){
+    S=prev; S.photos=S.photos||[null,null,null,null,null,null]; S.resumedAt=(S.resumedAt||[]); S.resumedAt.push(Date.now()); save();
+  } else { S=blank(); S.name=C.name; S.display=C.nameDisplay; save(); }
+  if(S.display) C.nameDisplay=S.display;
+  $('#title').classList.add('hidden');
+  function reveal(){
+    $('#case').classList.remove('hidden');
+    $('#nameTag').textContent=C.nameDisplay.toUpperCase();
+    if(prev && prev.locked){
+      var r=$('#resumed'); r.classList.remove('hidden');
+      r.textContent='You started this file on '+new Date(S.startedAt).toLocaleString()
+        +'. Your locked answers have been restored and cannot be changed. Reopening the page is recorded on your report.';
+    }
+    buildBrief(); buildEvidence(); buildStages(); window.scrollTo(0,0);
+  }
+  if(prev && prev.locked) reveal(); else playCine(reveal);
+}
+})();
+</script>
+</body>
+</html>
