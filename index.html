@@ -188,7 +188,6 @@ textarea:disabled,input:disabled{opacity:.85;cursor:not-allowed}
     color:#7a5410;letter-spacing:.06em;page-break-after:avoid}
   #printReport table{width:100%;border-collapse:collapse;margin-bottom:3mm;
     font:9.5pt/1.4 "Helvetica Neue",Arial,sans-serif}
-  #printReport tr{page-break-inside:avoid}
   #printReport th{text-align:left;background:#f2f4f6;color:#555;font-weight:700;padding:1.6mm 2mm;border:1px solid #ccc}
   #printReport td{padding:1.6mm 2mm;border:1px solid #ccc;vertical-align:top}
   #printReport td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -196,11 +195,13 @@ textarea:disabled,input:disabled{opacity:.85;cursor:not-allowed}
   #printReport .ans{font-weight:700}
   #printReport .vd{display:inline-block;border:1.5px solid #111;padding:1.5mm 4mm;
     font:700 11pt/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:.08em}
-  #printReport .qa{margin-bottom:4mm;page-break-inside:avoid}
+  #printReport .qa{margin-bottom:4mm}
   #printReport .q{font:italic 9.5pt/1.45 Georgia,serif;color:#555;margin:0 0 1.5mm}
   #printReport .a{white-space:pre-wrap;border:1px solid #ccc;padding:2.5mm;min-height:14mm}
-  #printReport .hw{page-break-inside:avoid;margin:0 0 4mm}
-  #printReport .hw img{display:block;max-width:100%;max-height:105mm;border:1px solid #ccc;margin-top:1.5mm}
+  #printReport .hw{margin:0 0 4mm}
+  #printReport .hw .q{page-break-after:avoid;break-after:avoid}
+  #printReport .hw img{display:block;width:auto;height:auto;max-width:120mm;max-height:80mm;border:1px solid #ccc;margin-top:1.5mm}
+  #printReport .end{margin-top:5mm;text-align:center;font:700 9pt/1.4 "Helvetica Neue",Arial,sans-serif;letter-spacing:.2em;color:#7a5410}
   #printReport .line{font:9pt/1.4 Consolas,monospace;border:1px dashed #999;padding:2mm;word-break:break-all}
   #printReport .foot{margin-top:6mm;padding-top:2mm;border-top:1px solid #bbb;
     font:8.5pt/1.4 "Helvetica Neue",Arial,sans-serif;color:#666}
@@ -491,7 +492,12 @@ textarea:disabled,input:disabled{opacity:.85;cursor:not-allowed}
         <textarea id="cX2"></textarea>
       </div>
       <div class="saved" id="savedNote"></div>
-      <div style="margin-top:18px"><button class="btn" id="printBtn">Print / save as PDF</button></div>
+      <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" id="printBtn">Print / save as PDF</button>
+        <button class="btn ghost" id="fileBtn">Download report file</button>
+      </div>
+      <p class="saved" style="margin-top:12px;line-height:1.6">Check your PDF before you submit: its last line must read <b>END OF REPORT</b>.
+        If it doesn&#8217;t, press <b>Download report file</b> and submit that file instead.</p>
     </div></div>
   </div>
 
@@ -627,15 +633,26 @@ textarea:disabled,input:disabled{opacity:.85;cursor:not-allowed}
     else push(4, 0, 1, isFinite(s[3]) ? 'incorrect' : 'blank');
 
     /* 5 - area under the recorder graph; independent of earlier stages */
-    if (close(s[4], A.area, TOL)) push(5, 2, 2, 'correct');
+    /* A student who skips the recorder and multiplies her own stage 1 and 2
+       answers lands within tolerance, because the recorder's readings are
+       close to them by design. Keep the marks, but flag it for the teacher. */
+    var ownArea = (isFinite(s[0]) && isFinite(s[1])) ? 0.5 * Math.abs(s[0] * s[1]) : NaN;
+    var ownFlag = isFinite(ownArea) && isFinite(s[4]) &&
+                  Math.abs(s[4] - ownArea) <= 0.001 * ownArea &&
+                  Math.abs(s[4] - A.area) > 0.0025 * A.area;
+    if (close(s[4], A.area, TOL)) push(5, 2, 2, ownFlag
+        ? 'CHECK: matches \u00bd \u00d7 her own speed \u00d7 her own time, not the recorder graph ('
+          + C.sealed.v_rec.toFixed(1) + ' m/s, ' + C.sealed.t_rec.toFixed(1) + ' s) - see working'
+        : 'correct');
     else if (close(s[4], T.trapRect, TOL)) push(5, 0, 2, 'used the whole rectangle - the half is missing');
     else push(5, 0, 2, isFinite(s[4]) ? 'incorrect' : 'blank');
 
     /* 6 - cross-check; ECF from own stages 3 and 5 */
     var cE = (isFinite(s[2]) && isFinite(s[4]) && s[4] !== 0)
            ? Math.abs(Math.abs(s[2]) - s[4]) / Math.abs(s[4]) * 100 : NaN;
-    if (close(s[5], A.xcheck, TOL, XABS)) push(6, 1, 1, 'correct');
-    else if (close(s[5], cE, TOL, XABS)) push(6, 1, 1, 'correct on own stages 3 and 5 (ECF)');
+    var s5 = Math.abs(s[5]), neg = s[5] < 0 ? ' (negative sign ignored)' : '';
+    if (close(s5, A.xcheck, TOL, XABS)) push(6, 1, 1, 'correct' + neg);
+    else if (close(s5, cE, TOL, XABS)) push(6, 1, 1, 'correct on own stages 3 and 5 (ECF)' + neg);
     else push(6, 0, 1, isFinite(s[5]) ? 'incorrect' : 'blank');
 
     /* gate */
@@ -1031,6 +1048,7 @@ function buildCER(){
       $('#savedNote').textContent='Saved in this browser \u00b7 '+new Date().toLocaleTimeString(); });
   });
   $('#printBtn').onclick=function(){ buildReport(); window.print(); };
+  $('#fileBtn').onclick=downloadReport;
   window.addEventListener('beforeprint', buildReport);
 }
 
@@ -1067,13 +1085,40 @@ function buildReport(){
    +'</table>'
    +'<h2>LOCKED ANSWERS</h2>'
    +'<table><tr><th style="width:34%">Stage</th><th>Working</th><th style="width:22mm">Answer</th></tr>'+rows+'</table>'
-   +(S.photos.some(Boolean)?'<h2>HANDWRITTEN WORKING</h2>'+S.photos.map(function(d,i){
-       return d?'<div class="hw"><div class="q">Stage '+(i+1)+' \u00b7 '+STAGES[i].title+'</div><img src="'+d+'" alt=""></div>':''; }).join(''):'')
    +'<h2>VERDICT</h2><p><span class="vd">'+(S.verdictLocked?(S.verdict==='O'?'OVERRAN THE MARKER':'STOPPED SHORT OF THE MARKER'):'NOT FILED')+'</span></p>'
    +'<h2>CLAIM, EVIDENCE, REASONING</h2>'+qa
    +'<h2>CROSS-EXAMINATION</h2>'+xq
    +'<h2>ANSWER LINE FOR YOUR TEACHER</h2><div class="line">'+esc(answerLine())+'</div>'
-   +'<div class="foot">The Platform Overrun &middot; 1D motion individual assessment &middot; every student&rsquo;s evidence is generated from their name.</div>';
+   /* Photos go last. If a browser cuts a long report short, it is the
+      pictures that are lost, never the written answers or the answer line. */
+   +(S.photos.some(Boolean)?'<h2>HANDWRITTEN WORKING</h2>'+S.photos.map(function(d,i){
+       return d?'<div class="hw"><div class="q">Stage '+(i+1)+' \u00b7 '+STAGES[i].title+'</div><img src="'+d+'" alt=""></div>':''; }).join(''):'')
+   +'<div class="foot">The Platform Overrun &middot; 1D motion individual assessment &middot; every student&rsquo;s evidence is generated from their name.</div>'
+   +'<div class="end">\u2014 END OF REPORT \u2014</div>';
+}
+
+/* ---------- the report as a file, for when printing fails ---------- */
+function downloadReport(){
+  buildReport();
+  var css='';
+  document.querySelectorAll('style').forEach(function(st){
+    var t=st.textContent, i=t.indexOf('@media print{');
+    if(i<0) return;
+    var depth=0, j=i+'@media print{'.length-1;
+    for(var k=j;k<t.length;k++){ if(t[k]==='{')depth++; else if(t[k]==='}'){depth--; if(depth===0){ css=t.slice(j+1,k); break; }} }
+  });
+  css=css.replace(/#title,#cine,#case,\.btn\{[^}]*\}/,'').replace(/#printReport\{display:block !important\}/,'');
+  var html='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+    +'<meta name="viewport" content="width=device-width, initial-scale=1">'
+    +'<title>The Platform Overrun \u2014 '+esc(C.nameDisplay)+'</title>'
+    +'<style>body{max-width:190mm;margin:10mm auto;padding:0 6mm}'+css+'</style></head><body>'
+    +'<div id="printReport">'+$('#printReport').innerHTML+'</div></body></html>';
+  var blob=new Blob([html],{type:'text/html'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='Platform-Overrun-'+C.nameDisplay.replace(/[^A-Za-z0-9]+/g,'-')+'.html';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
 }
 
 /* ---------- cinematic: verdict-neutral, it fades before the train stops ---------- */
